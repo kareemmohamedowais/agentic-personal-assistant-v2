@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI/UX Redesign - Agentic Personal Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* IMPROVEMENT: Design Tokens لتوحيد الهوية البصرية ومنع magic numbers */
+      :root {
+        --color-primary: #1d4ed8;
+        --color-primary-hover: #1e40af;
+        --color-primary-active: #1e3a8a;
+        --color-secondary: #0f766e;
+        --color-accent: #f59e0b;
+        --color-bg: #f8fafc;
+        --color-surface: #ffffff;
+        --color-surface-soft: #f1f5f9;
+        --color-text: #0f172a;
+        --color-text-muted: #475569;
+        --color-border: #cbd5e1;
+        --color-focus: #2563eb;
+        --color-danger: #dc2626;
+        --color-success: #059669;
+
+        --space-2xs: 0.25rem;
+        --space-xs: 0.5rem;
+        --space-sm: 0.75rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        --space-2xl: 3rem;
+
+        --font-family-body:
+          "Tajawal", system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        --font-family-display: "Space Grotesk", "Tajawal", sans-serif;
+
+        --font-size-caption: 0.875rem;
+        --font-size-body: 1rem;
+        --font-size-h3: 1.25rem;
+        --font-size-h2: 1.75rem;
+        --font-size-h1: 2.25rem;
+
+        --font-weight-regular: 400;
+        --font-weight-medium: 500;
+        --font-weight-bold: 700;
+        --font-weight-xbold: 800;
+
+        --line-height-tight: 1.3;
+        --line-height-body: 1.6;
+
+        --radius-sm: 0.5rem;
+        --radius-md: 0.75rem;
+        --radius-lg: 1rem;
+        --radius-xl: 1.25rem;
+
+        --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.08);
+        --shadow-md: 0 8px 20px rgb(15 23 42 / 0.1);
+        --shadow-lg: 0 18px 40px rgb(15 23 42 / 0.14);
+
+        --touch-target-min: 2.75rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-family-body);
+        font-size: var(--font-size-body);
+        line-height: var(--line-height-body);
+        color: var(--color-text);
+        background:
+          radial-gradient(
+            circle at 15% 10%,
+            rgb(37 99 235 / 0.08),
+            transparent 35%
+          ),
+          radial-gradient(
+            circle at 85% 8%,
+            rgb(15 118 110 / 0.1),
+            transparent 30%
+          ),
+          linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        min-height: 100vh;
+      }
+
+      img {
+        max-width: 100%;
+        display: block;
+      }
+
+      .container {
+        width: min(72rem, 100% - calc(var(--space-md) * 2));
+        margin-inline: auto;
+      }
+
+      /* IMPROVEMENT: Hero واضح مع CTA أساسي لرفع وضوح الانطباع الأول */
+      .hero {
+        padding-block: var(--space-2xl) var(--space-xl);
+      }
+
+      .hero-card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-xl);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        background: rgb(29 78 216 / 0.1);
+        color: var(--color-primary);
+        border: 1px solid rgb(29 78 216 / 0.25);
+        border-radius: 999px;
+        padding: var(--space-2xs) var(--space-sm);
+        font-size: var(--font-size-caption);
+        font-weight: var(--font-weight-bold);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: var(--font-family-display);
+        line-height: var(--line-height-tight);
+      }
+
+      h1 {
+        font-size: clamp(1.75rem, 3.8vw, var(--font-size-h1));
+        margin-top: var(--space-md);
+      }
+
+      h2 {
+        font-size: clamp(1.35rem, 2.5vw, var(--font-size-h2));
+      }
+
+      h3 {
+        font-size: var(--font-size-h3);
+      }
+
+      .hero-text {
+        margin: var(--space-md) 0 var(--space-lg);
+        color: var(--color-text-muted);
+        max-width: 62ch;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+      }
+
+      /* IMPROVEMENT: توحيد نظام الأزرار مع حالات hover/focus/active واضحة */
+      .btn {
+        min-height: var(--touch-target-min);
+        min-width: var(--touch-target-min);
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        padding: var(--space-sm) var(--space-lg);
+        font-size: var(--font-size-body);
+        font-weight: var(--font-weight-bold);
+        cursor: pointer;
+        transition: 0.2s ease;
+      }
+
+      .btn:focus-visible {
+        outline: 3px solid rgb(37 99 235 / 0.35);
+        outline-offset: 2px;
+      }
+
+      .btn-primary {
+        background: var(--color-primary);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: var(--color-primary-hover);
+      }
+
+      .btn-primary:active {
+        background: var(--color-primary-active);
+      }
+
+      .btn-secondary {
+        background: var(--color-surface);
+        color: var(--color-primary);
+        border-color: var(--color-border);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--color-primary);
+        background: #eff6ff;
+      }
+
+      /* IMPROVEMENT: Layout على Grid لتوجيه العين (Header -> KPI -> Action -> Details) */
+      .dashboard {
+        margin-block: 0 var(--space-2xl);
+      }
+
+      .grid {
+        display: grid;
+        gap: var(--space-md);
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .card-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
+      }
+
+      .muted {
+        color: var(--color-text-muted);
+      }
+
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-sm);
+      }
+
+      .kpi {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        background: var(--color-surface-soft);
+      }
+
+      .kpi strong {
+        display: block;
+        font-size: 1.5rem;
+      }
+
+      /* IMPROVEMENT: Form قابلية قراءة أعلى + labels واضحة + تباعد ثابت */
+      .form-grid {
+        display: grid;
+        gap: var(--space-sm);
+      }
+
+      label {
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-caption);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: var(--touch-target-min);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        font: inherit;
+        color: var(--color-text);
+        background: #ffffff;
+      }
+
+      textarea {
+        min-height: 6rem;
+        resize: vertical;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 3px solid rgb(37 99 235 / 0.2);
+        border-color: var(--color-focus);
+      }
+
+      .hint {
+        font-size: var(--font-size-caption);
+        color: var(--color-text-muted);
+      }
+
+      /* IMPROVEMENT: حالات feedback بصرية واضحة للمستخدم */
+      .status {
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+        font-size: var(--font-size-caption);
+        border: 1px solid;
+      }
+
+      .status-success {
+        color: var(--color-success);
+        background: rgb(5 150 105 / 0.08);
+        border-color: rgb(5 150 105 / 0.35);
+      }
+
+      .status-danger {
+        color: var(--color-danger);
+        background: rgb(220 38 38 / 0.08);
+        border-color: rgb(220 38 38 / 0.35);
+      }
+
+      /* IMPROVEMENT: قسم مقارنة before/after مع toggle لتوضيح أثر التحسين */
+      .comparison {
+        margin-bottom: var(--space-2xl);
+      }
+
+      .compare-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+      }
+
+      .preview {
+        border: 1px dashed var(--color-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      .before,
+      .after {
+        padding: var(--space-lg);
+      }
+
+      .before {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .before .fake-btn {
+        background: #777777;
+        color: #ffffff;
+        border: 0;
+        padding: 0.35rem 0.6rem;
+      }
+
+      .after {
+        display: none;
+        background: var(--color-surface);
+      }
+
+      .preview.show-after .before {
+        display: none;
+      }
+
+      .preview.show-after .after {
+        display: block;
+      }
+
+      .changes-list {
+        margin: var(--space-md) 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: var(--space-sm);
+      }
+
+      .changes-list li {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
+      }
+
+      @media (min-width: 48rem) {
+        .grid {
+          grid-template-columns: 1.15fr 0.85fr;
+        }
+
+        .kpis {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container hero-card">
+        <span class="eyebrow">UX Redesign Demo</span>
+        <h1>لوحة تحكم محسّنة وفق Design System واضح</h1>
+        <p class="hero-text">
+          هذه الصفحة تطبق تحسينات UX/Visual Hierarchy/Accessibility بقيم دقيقة
+          وقابلة للتطوير. كل الألوان والمسافات والخطوط مبنية على Design Tokens
+          داخل CSS Variables.
+        </p>
+        <div class="cta-row">
+          <button class="btn btn-primary" type="button" aria-label="ابدأ الآن">
+            ابدأ الآن
+          </button>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            aria-label="عرض التفاصيل"
+          >
+            عرض التفاصيل
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container dashboard">
+      <section class="grid" aria-label="لوحة المعلومات">
+        <article class="card" aria-labelledby="kpi-title">
+          <div class="card-title">
+            <h2 id="kpi-title">ملخص الأداء</h2>
+            <span class="hint">آخر 30 يوم</span>
+          </div>
+          <div class="kpis">
+            <div class="kpi">
+              <span class="hint">الزيارات</span>
+              <strong>42.1K</strong>
+            </div>
+            <div class="kpi">
+              <span class="hint">التحويل</span>
+              <strong>4.8%</strong>
+            </div>
+            <div class="kpi">
+              <span class="hint">متوسط الجلسة</span>
+              <strong>06:22</strong>
+            </div>
+            <div class="kpi">
+              <span class="hint">رضا المستخدم</span>
+              <strong>91%</strong>
+            </div>
+          </div>
+          <p class="status status-success" role="status">
+            تم تحسين التسلسل البصري: CTA الرئيسي الآن أول نقطة جذب.
+          </p>
+        </article>
+
+        <article class="card" aria-labelledby="form-title">
+          <div class="card-title">
+            <h2 id="form-title">نموذج الإجراء السريع</h2>
+          </div>
+          <form class="form-grid">
+            <div>
+              <label for="project">اسم المشروع</label>
+              <input
+                id="project"
+                type="text"
+                placeholder="مثال: SaaS Dashboard"
+                aria-label="اسم المشروع"
+              />
+            </div>
+            <div>
+              <label for="priority">الأولوية</label>
+              <select id="priority" aria-label="مستوى الأولوية">
+                <option>عالية</option>
+                <option>متوسطة</option>
+                <option>منخفضة</option>
+              </select>
+            </div>
+            <div>
+              <label for="note">ملاحظة</label>
+              <textarea
+                id="note"
+                placeholder="اكتب تفاصيل المهمة..."
+              ></textarea>
+            </div>
+            <div class="cta-row">
+              <button class="btn btn-primary" type="submit" aria-label="حفظ">
+                حفظ
+              </button>
+              <button class="btn btn-secondary" type="reset" aria-label="إلغاء">
+                إلغاء
+              </button>
+            </div>
+            <p class="status status-danger" role="alert">
+              قبل التحسين: زر الإجراء كان #777 بتباين ضعيف. بعد التحسين:
+              #1D4ED8.
+            </p>
+          </form>
+        </article>
+      </section>
+    </main>
+
+    <section class="container comparison" aria-labelledby="compare-title">
+      <div class="card">
+        <div class="compare-toolbar">
+          <h2 id="compare-title">Before / After Comparison</h2>
+          <button
+            id="toggleView"
+            class="btn btn-secondary"
+            type="button"
+            aria-label="تبديل العرض بين النسخة القديمة والجديدة"
+          >
+            عرض النسخة الجديدة
+          </button>
+        </div>
+
+        <div id="preview" class="preview" data-mode="before">
+          <div class="before">
+            <h3>Before</h3>
+            <p>
+              تصميم مزدحم، CTA رمادي #777، عناوين بدون hierarchy واضح، وحجم خط
+              14px في أجزاء رئيسية.
+            </p>
+            <button class="fake-btn" type="button">Submit</button>
+          </div>
+          <div class="after">
+            <h3>After</h3>
+            <p>
+              تسلسل بصري واضح، CTA رئيسي #1D4ED8، body 16px، line-height 1.6،
+              ومسافات مبنية على 8px grid.
+            </p>
+            <button class="btn btn-primary" type="button">ابدأ الآن</button>
+          </div>
+        </div>
+
+        <ul class="changes-list">
+          <li>
+            <strong>1)</strong> تحسين CTA: من <code>#777</code> إلى
+            <code>#1D4ED8</code> لرفع الوضوح والتباين.
+          </li>
+          <li>
+            <strong>2)</strong> توحيد spacing على 8px grid:
+            <code>8/12/16/24/32</code>.
+          </li>
+          <li>
+            <strong>3)</strong> رفع الخط الأساسي إلى <code>16px</code> و<code
+              >line-height: 1.6</code
+            >.
+          </li>
+          <li>
+            <strong>4)</strong> زيادة touch target لكل العناصر التفاعلية إلى
+            <code>44px</code> كحد أدنى.
+          </li>
+          <li>
+            <strong>5)</strong> تحسين hierarchy عبر Hero واضح + KPI Cards + Form
+            action panel.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <script>
+      /* IMPROVEMENT: Toggle بسيط بدون أي framework لعرض before/after */
+      const toggleBtn = document.getElementById("toggleView");
+      const preview = document.getElementById("preview");
+
+      toggleBtn.addEventListener("click", () => {
+        const isBefore = preview.dataset.mode === "before";
+        preview.dataset.mode = isBefore ? "after" : "before";
+        preview.classList.toggle("show-after", isBefore);
+        toggleBtn.textContent = isBefore
+          ? "عرض النسخة القديمة"
+          : "عرض النسخة الجديدة";
+      });
+    </script>
+  </body>
+</html>

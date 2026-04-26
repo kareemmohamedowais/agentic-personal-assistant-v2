@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "client-build",
+			"type": "shell",
+			"command": "cd client && npm run build",
+			"isBackground": false
+		}
+	]
+}
