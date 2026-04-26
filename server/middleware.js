@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import db from "./db.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -11,6 +12,11 @@ export function requireAuth(req, res, next) {
   const token = header.slice(7);
   try {
     const payload = jwt.verify(token, JWT_SECRET);
+    // ─── Enforce is_active check ──────────────────────────────
+    const user = db.prepare("SELECT is_active FROM users WHERE id = ?").get(payload.userId);
+    if (!user || !user.is_active) {
+      return res.status(403).json({ error: "هذا الحساب معطّل — تواصل مع المسؤول" });
+    }
     req.user = payload; // { userId, email, name, role }
     next();
   } catch {
@@ -24,3 +30,4 @@ export function requireAdmin(req, res, next) {
   }
   next();
 }
+

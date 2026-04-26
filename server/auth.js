@@ -4,7 +4,13 @@ import jwt from "jsonwebtoken";
 import db from "./db.js";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret-in-production";
+
+// ─── JWT_SECRET validation ──────────────────────────────────
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET is not set in environment variables");
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = "7d";
 
 // ─── Register ───────────────────────────────────────────────
@@ -56,11 +62,16 @@ router.post("/login", async (req, res) => {
     }
 
     const user = db
-      .prepare("SELECT id, email, name, password, role FROM users WHERE email = ?")
+      .prepare("SELECT id, email, name, password, role, is_active FROM users WHERE email = ?")
       .get(email);
 
     if (!user) {
       return res.status(401).json({ error: "بيانات الدخول غير صحيحة" });
+    }
+
+    // ─── Enforce is_active check ──────────────────────────────
+    if (!user.is_active) {
+      return res.status(403).json({ error: "هذا الحساب معطّل — تواصل مع المسؤول" });
     }
 
     const valid = await bcrypt.compare(password, user.password);
@@ -87,3 +98,4 @@ router.post("/login", async (req, res) => {
 });
 
 export default router;
+

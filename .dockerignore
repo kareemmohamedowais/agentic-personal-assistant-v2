@@ -1,0 +1,13 @@
+node_modules
+server/node_modules
+client/node_modules
+server/.env
+server/app.db
+server/app.db-wal
+server/app.db-shm
+server/uploads
+client/dist
+.git
+*.md
+.vscode
+plan

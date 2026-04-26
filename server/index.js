@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import multer from "multer";
 import os from "node:os";
 import path from "node:path";
@@ -23,14 +25,59 @@ const MEDIA_DIR = path.join(__dirname, "uploads", "media");
 fs.mkdirSync(MEDIA_DIR, { recursive: true });
 
 const app = express();
-app.use(cors());
+
+// ─── Security: Helmet HTTP headers ──────────────────────────
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// ─── Security: CORS restricted to allowed origins ───────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:5173", "http://localhost:3001"];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
 app.use(express.json());
 
-// ─── Serve uploaded media files ─────────────────────────────
-app.use("/api/media", express.static(MEDIA_DIR));
+// ─── Security: Rate limiting ────────────────────────────────
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "طلبات كثيرة جداً — حاول بعد قليل" },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "محاولات كثيرة — حاول بعد 15 دقيقة" },
+});
 
-// ─── Auth routes (public) ───────────────────────────────────
-app.use("/api/auth", authRouter);
+// ─── Health check (before auth) ─────────────────────────────
+app.get("/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || "development",
+  });
+});
+
+// ─── Serve uploaded media files (protected) ─────────────────
+app.get("/api/media/:filename", requireAuth, (req, res) => {
+  const safeFilename = path.basename(req.params.filename);
+  const filePath = path.join(MEDIA_DIR, safeFilename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "الملف غير موجود" });
+  }
+  res.sendFile(filePath);
+});
+
+// ─── Auth routes (public, rate-limited) ─────────────────────
+app.use("/api/auth", authLimiter, authRouter);
+
+// ─── General API rate limiter ───────────────────────────────
+app.use("/api", generalLimiter);
 
 // ─── Developer Docs Helper routes ───────────────────────────
 app.use("/api/dev-docs", devDocsRouter);
@@ -802,6 +849,15 @@ app.put("/api/admin/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true, role });
 });
 
-app.listen(3001, () => {
-  console.log("🚀 Server running on port 3001");
+// ─── Serve client build in production ────────────────────────
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.join(__dirname, "..", "client", "dist");
+  app.use(express.static(clientDist));
+  app.get("*", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+}
+
+// ─── Start server ───────────────────────────────────────────
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
