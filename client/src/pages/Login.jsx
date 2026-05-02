@@ -44,25 +44,25 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden mesh-gradient-bg">
       {/* Animated gradient background */}
       <div className="absolute inset-0 animate-mesh-gradient opacity-60 mesh-gradient-bg" />
-      
+
       {/* Noise texture */}
       <div className="bg-noise absolute inset-0" />
-      
+
       {/* Floating gradient orbs */}
       <div className="absolute top-[15%] left-[15%] w-96 h-96 rounded-full animate-float-slow opacity-40"
         style={{ background: "radial-gradient(circle, rgba(212,168,83,0.12) 0%, transparent 70%)" }} />
       <div className="absolute bottom-[10%] right-[10%] w-80 h-80 rounded-full animate-float-slow opacity-30"
         style={{ background: "radial-gradient(circle, rgba(45,212,191,0.08) 0%, transparent 70%)", animationDelay: "-10s" }} />
-      
+
       <div className="w-full max-w-md relative z-10">
         {/* Logo & Title */}
         <div className="text-center mb-8 animate-reveal-up">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 shadow-2xl animate-pulse-glow"
-               style={{ background: "var(--gradient-primary)", boxShadow: "0 8px 32px rgba(212,168,83,0.2)" }}>
+            style={{ background: "var(--gradient-primary)", boxShadow: "0 8px 32px rgba(212,168,83,0.2)" }}>
             <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" style={{ color: "#0a0a0a" }}>
-              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.9"/>
-              <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.9" />
+              <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <h1 className="text-3xl font-bold gradient-text" style={{ fontFamily: "var(--font-display)" }}>
@@ -130,6 +130,7 @@ export default function Login() {
             </button>
           </form>
 
+{/* 
           <p className="text-center text-sm mt-6" style={{ color: "var(--text-secondary)" }}>
             ليس لديك حساب؟{" "}
             <Link to="/register" className="font-medium transition-colors duration-200"
@@ -140,6 +141,7 @@ export default function Login() {
               إنشاء حساب
             </Link>
           </p>
+          */}
         </div>
       </div>
     </div>

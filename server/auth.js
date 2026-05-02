@@ -15,6 +15,11 @@ const JWT_EXPIRES = "7d";
 
 // ─── Register ───────────────────────────────────────────────
 router.post("/register", async (req, res) => {
+  // Toggle registration via environment variable (Disabled by default)
+  if (process.env.ALLOW_REGISTRATION !== "true") {
+    return res.status(403).json({ error: "إنشاء الحسابات معطل حالياً من قبل المسؤول" });
+  }
+
   try {
     const { email, password, name } = req.body;
 

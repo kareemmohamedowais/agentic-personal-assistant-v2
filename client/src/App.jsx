@@ -32,50 +32,50 @@ function AppLoader() {
 export default function App() {
   return (
     <ThemeProvider>
-    <AuthProvider>
-    <DevDocsProvider>
-    <GitHubReposProvider>
-    <PerformanceProvider>
-    <SidebarProvider>
-      <BrowserRouter>
-        <Suspense fallback={<AppLoader />}>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+      <AuthProvider>
+        <DevDocsProvider>
+          <GitHubReposProvider>
+            <PerformanceProvider>
+              <SidebarProvider>
+                <BrowserRouter>
+                  <Suspense fallback={<AppLoader />}>
+                    <Routes>
+                      {/* Public */}
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
 
-            {/* Protected — with sidebar layout */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/chat" element={<GeneralChat />} />
-              <Route path="/document-rag" element={<DocumentRAG />} />
-              <Route path="/github-rag" element={<GitHubRAG />} />
-              <Route path="/dev-docs" element={<DevDocsRAG />} />
-              <Route path="/search" element={<UnifiedSearch />} />
+                      {/* Protected — with sidebar layout */}
+                      <Route
+                        element={
+                          <ProtectedRoute>
+                            <AppLayout />
+                          </ProtectedRoute>
+                        }
+                      >
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/chat" element={<GeneralChat />} />
+                        <Route path="/document-rag" element={<DocumentRAG />} />
+                        <Route path="/github-rag" element={<GitHubRAG />} />
+                        <Route path="/dev-docs" element={<DevDocsRAG />} />
+                        <Route path="/search" element={<UnifiedSearch />} />
 
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/admin" element={<Admin />} />
+                        <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/admin" element={<Admin />} />
 
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            </Route>
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </SidebarProvider>
-    </PerformanceProvider>
-    </GitHubReposProvider>
-    </DevDocsProvider>
-    </AuthProvider>
+                      {/* Fallback */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Suspense>
+                </BrowserRouter>
+              </SidebarProvider>
+            </PerformanceProvider>
+          </GitHubReposProvider>
+        </DevDocsProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
