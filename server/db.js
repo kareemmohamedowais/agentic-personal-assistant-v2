@@ -350,4 +350,17 @@ for (const p of defaultPrompts) {
   }
 }
 
+// ─── Seed default admin if empty ──────────────────────────────
+const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
+if (userCount === 0) {
+  import("bcryptjs").then(async (bcrypt) => {
+    // Note: bcryptjs exports are a bit different in ESM dynamic imports
+    const salt = await bcrypt.default.genSalt(10);
+    const hashed = await bcrypt.default.hash("admin123456", salt);
+    db.prepare("INSERT INTO users (name, email, password, role, is_active) VALUES (?, ?, ?, ?, 1)")
+      .run("Default Admin", "admin@admin.com", hashed, "admin");
+    console.log("🎁 [db] Seeded default admin account: admin@admin.com / admin123456");
+  });
+}
+
 export default db;
