@@ -1,4 +1,9 @@
 import "dotenv/config";
+
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET environment variable is not set.");
+  process.exit(1);
+}
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -30,37 +35,24 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // ─── Security: CORS restricted to allowed origins ───────────
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : ["http://localhost:5173", "http://localhost:3001"];
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN || "http://localhost:5173",
+  credentials: true,
+}));
 
 app.use(express.json());
 
 // ─── Security: Rate limiting ────────────────────────────────
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "طلبات كثيرة جداً — حاول بعد قليل" },
-});
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "محاولات كثيرة — حاول بعد 15 دقيقة" },
 });
 
 // ─── Health check (before auth) ─────────────────────────────
-app.get("/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    uptime: Math.round(process.uptime()),
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || "development",
-  });
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
 // ─── Serve uploaded media files (protected) ─────────────────
@@ -74,10 +66,10 @@ app.get("/api/media/:filename", requireAuth, (req, res) => {
 });
 
 // ─── Auth routes (public, rate-limited) ─────────────────────
-app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/auth", limiter, authRouter);
 
 // ─── General API rate limiter ───────────────────────────────
-app.use("/api", generalLimiter);
+app.use("/api/", limiter);
 
 // ─── Developer Docs Helper routes ───────────────────────────
 app.use("/api/dev-docs", devDocsRouter);
@@ -849,14 +841,14 @@ app.put("/api/admin/users/:id/role", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true, role });
 });
 
-// ─── Serve client build in production ────────────────────────
+// Serve React frontend in production
 if (process.env.NODE_ENV === "production") {
-  const clientDist = path.join(__dirname, "..", "client", "dist");
-  app.use(express.static(clientDist));
-  app.get("*", (_req, res) => res.sendFile(path.join(clientDist, "index.html")));
+  app.use(express.static(path.join(__dirname, "public")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  });
 }
 
-// ─── Start server ───────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
