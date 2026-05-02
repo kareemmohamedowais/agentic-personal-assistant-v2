@@ -8,7 +8,7 @@ RUN npm run build
 
 # Stage 2: Production server
 FROM node:20-alpine
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ git
 WORKDIR /app
 COPY server/package*.json ./
 RUN npm ci --omit=dev --legacy-peer-deps

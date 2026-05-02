@@ -30,6 +30,8 @@ const MEDIA_DIR = path.join(__dirname, "uploads", "media");
 fs.mkdirSync(MEDIA_DIR, { recursive: true });
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 // ─── Security: Helmet HTTP headers ──────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
