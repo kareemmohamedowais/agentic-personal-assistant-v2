@@ -49,6 +49,9 @@ export default function GitHubRepos() {
   const [addUrl, setAddUrl] = useState("");
   const [addError, setAddError] = useState("");
   const [adding, setAdding] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(null); // { id, fullName }
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,16 +115,31 @@ export default function GitHubRepos() {
     }
   };
 
-  const handleRemove = async (repoId, fullName) => {
-    if (!confirm(`هل أنت متأكد من حذف ${fullName}؟ سيتم حذف كل الـ vectors المرتبطة.`)) return;
+  const openDeleteModal = (repoId, fullName) => {
+    setDeleteError("");
+    setDeleteModal({ id: repoId, fullName });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    setDeleting(true);
+    setDeleteError("");
     try {
-      await fetch(`/api/github-repos/remove/${repoId}`, {
+      const res = await fetch(`/api/github-repos/remove/${deleteModal.id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchData();
-    } catch (err) {
-      console.error("Remove failed:", err);
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || "فشل حذف المستودع");
+      } else {
+        setDeleteModal(null);
+        fetchData();
+      }
+    } catch {
+      setDeleteError("خطأ في الاتصال، حاول مرة أخرى");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -338,9 +356,9 @@ export default function GitHubRepos() {
                     )}
                     {!isProcessing && (
                       <button
-                        onClick={() => handleRemove(repo.id, repo.fullName)}
+                        onClick={() => openDeleteModal(repo.id, repo.fullName)}
                         className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-all"
-                        title="حذف"
+                        title="حذف المستودع"
                       >
                         🗑️
                       </button>
@@ -368,6 +386,75 @@ export default function GitHubRepos() {
           </div>
         )}
       </div>
+
+      {/* ─── Delete Confirmation Modal ────────────────────────── */}
+      {deleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting) setDeleteModal(null); }}
+        >
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            {/* Icon + Title */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/15 flex items-center justify-center text-xl shrink-0">
+                🗑️
+              </div>
+              <div>
+                <h2 className="text-white font-semibold text-base">حذف المستودع</h2>
+                <p className="text-slate-400 text-xs mt-0.5">هذا الإجراء لا يمكن التراجع عنه</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="bg-slate-800/60 rounded-xl px-4 py-3 mb-4">
+              <p className="text-slate-300 text-sm leading-relaxed">
+                هل أنت متأكد من حذف{" "}
+                <span className="text-white font-mono font-medium" dir="ltr">
+                  {deleteModal.fullName}
+                </span>
+                ؟
+              </p>
+              <p className="text-slate-500 text-xs mt-1.5">
+                سيتم حذف جميع الـ vectors والبيانات المفهرسة المرتبطة بهذا المستودع نهائياً.
+              </p>
+            </div>
+
+            {/* Error */}
+            {deleteError && (
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5 mb-4">
+                <span>⚠️</span>
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteModal(null)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all disabled:opacity-40"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-5 py-2 text-sm rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-all disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    جاري الحذف...
+                  </>
+                ) : (
+                  <>🗑️ حذف المستودع</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
