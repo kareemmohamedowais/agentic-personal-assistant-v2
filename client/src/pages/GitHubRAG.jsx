@@ -38,6 +38,9 @@ export default function GitHubRAG() {
   const [repoSearch, setRepoSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(true);
+  const [deleteModal, setDeleteModal] = useState(null); // { id, fullName }
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const messagesRef = useRef(null);
   const endRef = useRef(null);
   const isCreatingConvRef = useRef(false);
@@ -155,6 +158,35 @@ export default function GitHubRAG() {
     } catch (err) { console.error(err); }
   };
 
+  const openDeleteModal = (e, repoId, fullName) => {
+    e.stopPropagation();
+    setDeleteError("");
+    setDeleteModal({ id: repoId, fullName });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/github-repos/remove/${deleteModal.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || "فشل حذف المستودع");
+      } else {
+        setDeleteModal(null);
+        fetchData();
+      }
+    } catch {
+      setDeleteError("خطأ في الاتصال، حاول مرة أخرى");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const languages = ["all", ...new Set(repos.map((r) => (r.language || "unknown")).filter(Boolean))];
   const filteredRepos = repos.filter((repo) => {
     const langOk = langFilter === "all" || (repo.language || "unknown") === langFilter;
@@ -203,13 +235,27 @@ export default function GitHubRAG() {
                     <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{repo.fullName.split('/')[0]} • {repo.language || "n/a"}</p>
                   </div>
                 </div>
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm`}
-                  style={{ 
-                    background: isEnabled ? "var(--accent-primary)" : "rgba(255,255,255,0.05)", 
-                    borderColor: isEnabled ? "var(--accent-primary)" : "var(--border-subtle)",
-                    boxShadow: isEnabled ? "0 0 10px rgba(59,130,246,0.5)" : "none"
-                  }}>
-                  {isEnabled && <span className="text-xs text-white font-bold leading-none">✓</span>}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => openDeleteModal(e, repo.id, repo.fullName)}
+                    title="حذف المستودع"
+                    className="w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                    style={{ background: "rgba(239,68,68,0.1)", color: "rgba(239,68,68,0.7)" }}
+                    onMouseEnter={e => { e.currentTarget.style.background="rgba(239,68,68,0.25)"; e.currentTarget.style.color="rgb(239,68,68)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background="rgba(239,68,68,0.1)"; e.currentTarget.style.color="rgba(239,68,68,0.7)"; }}
+                  >
+                    <span className="text-[11px] leading-none">🗑️</span>
+                  </button>
+                  {/* Checkbox */}
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-300 shadow-sm`}
+                    style={{ 
+                      background: isEnabled ? "var(--accent-primary)" : "rgba(255,255,255,0.05)", 
+                      borderColor: isEnabled ? "var(--accent-primary)" : "var(--border-subtle)",
+                      boxShadow: isEnabled ? "0 0 10px rgba(59,130,246,0.5)" : "none"
+                    }}>
+                    {isEnabled && <span className="text-xs text-white font-bold leading-none">✓</span>}
+                  </div>
                 </div>
               </div>
             </GlassCard>
@@ -259,6 +305,84 @@ export default function GitHubRAG() {
           welcomeIcon={<span className="text-3xl">🧩🐙</span>} showWebSearchToggle={false}
           mediaSupported={false} placeholder="ابحث في الكود..." />
       </main>
+
+      {/* ─── Delete Confirmation Modal ────────────────────────── */}
+      {deleteModal && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget && !deleting) setDeleteModal(null); }}
+        >
+          <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl border"
+            style={{ background: "var(--bg-surface)", borderColor: "var(--border-color)" }}>
+            {/* Icon + Title */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0"
+                style={{ background: "rgba(239,68,68,0.12)" }}>
+                🗑️
+              </div>
+              <div>
+                <h2 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>حذف المستودع</h2>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>هذا الإجراء لا يمكن التراجع عنه</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="rounded-xl px-4 py-3 mb-4"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--border-subtle)" }}>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                هل أنت متأكد من حذف{" "}
+                <span className="font-mono font-semibold" style={{ color: "var(--text-primary)" }} dir="ltr">
+                  {deleteModal.fullName}
+                </span>
+                ؟
+              </p>
+              <p className="text-[10px] mt-1.5" style={{ color: "var(--text-muted)" }}>
+                سيتم حذف جميع الـ vectors والبيانات المفهرسة نهائياً.
+              </p>
+            </div>
+
+            {/* Error */}
+            {deleteError && (
+              <div className="flex items-center gap-2 text-xs rounded-xl px-3 py-2.5 mb-4"
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "rgb(248,113,113)" }}>
+                <span>⚠️</span><span>{deleteError}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteModal(null)}
+                disabled={deleting}
+                className="px-4 py-2 text-xs rounded-xl transition-all disabled:opacity-40"
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" }}
+                onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
+                onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2 text-xs rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                style={{ background: "rgb(220,38,38)" }}
+                onMouseEnter={e => !deleting && (e.currentTarget.style.background="rgb(239,68,68)")}
+                onMouseLeave={e => e.currentTarget.style.background="rgb(220,38,38)"}
+              >
+                {deleting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    جاري الحذف...
+                  </>
+                ) : (
+                  <>🗑️ حذف</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
