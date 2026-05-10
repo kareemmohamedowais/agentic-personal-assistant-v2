@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageSquare, 
@@ -54,6 +55,33 @@ export default function ChatPanel({
   welcomeDesc = "استكشف إمكانيات الذكاء الاصطناعي في المحادثة والبحث الذكي",
   welcomeIcon = <MessageSquare className="w-8 h-8 text-indigo-400" />
 }) {
+
+  const { token } = useAuth();
+  const [internalIsOptimizing, setInternalIsOptimizing] = useState(false);
+  const finalIsOptimizing = isOptimizing !== undefined ? isOptimizing : internalIsOptimizing;
+
+  const finalHandleOptimize = handleOptimize || (async () => {
+    if (!input?.trim() || finalIsOptimizing) return;
+    setInternalIsOptimizing(true);
+    try {
+      const res = await fetch("/api/optimize-prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: input })
+      });
+      const data = await res.json();
+      if (data.ok && data.optimized) {
+        setInput(data.optimized);
+      }
+    } catch (err) {
+      console.error("Optimize error:", err);
+    } finally {
+      setInternalIsOptimizing(false);
+    }
+  });
 
   const starterPrompts = [
     { title: "تحليل كود", desc: "افهم البنية البرمجية لأي مشروع", icon: <GitBranch className="w-4 h-4" /> },
@@ -222,8 +250,8 @@ export default function ChatPanel({
           setSelectedModel={setSelectedModel}
           webSearchEnabled={webSearchEnabled}
           setWebSearchEnabled={setWebSearchEnabled}
-          isOptimizing={isOptimizing}
-          handleOptimize={handleOptimize}
+          isOptimizing={finalIsOptimizing}
+          handleOptimize={finalHandleOptimize}
           prompts={prompts}
           selectedPrompt={selectedPrompt}
           selectPersona={selectPersona}

@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePerformance } from "../contexts/PerformanceContext";
 import { useSidebar } from "../contexts/SidebarContext";
 import useConversations from "../hooks/useConversations";
+import useModels from "../hooks/useModels";
 
 export default function GitHubRAG() {
   const { user, token } = useAuth();
@@ -26,6 +27,8 @@ export default function GitHubRAG() {
     fetchConversations,
   } = useConversations("github");
 
+  const { models, selectedModel, setSelectedModel, selectedProvider, setSelectedProvider } = useModels();
+
   const [repos, setRepos] = useState([]);
   const [localPrefs, setLocalPrefs] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -37,6 +40,11 @@ export default function GitHubRAG() {
   const [loadingRepos, setLoadingRepos] = useState(true);
   const messagesRef = useRef(null);
   const endRef = useRef(null);
+  const isCreatingConvRef = useRef(false);
+  const pollingRef = useRef(null);
+
+  // Stop polling on unmount
+  useEffect(() => { return () => { if (pollingRef.current) clearInterval(pollingRef.current); }; }, []);
 
   const fetchMessages = useCallback(async (convId) => {
     setLoading(true);
@@ -61,6 +69,10 @@ export default function GitHubRAG() {
 
   useEffect(() => {
     if (activeConv) {
+      if (isCreatingConvRef.current) {
+        isCreatingConvRef.current = false;
+        return;
+      }
       fetchMessages(activeConv.id);
     } else {
       setMessages([]);
@@ -82,6 +94,17 @@ export default function GitHubRAG() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Auto-poll while any repo is still being processed
+  useEffect(() => {
+    const hasPending = repos.some(r => !['ready','error'].includes(r.status));
+    if (hasPending && !pollingRef.current) {
+      pollingRef.current = setInterval(fetchData, 3000);
+    } else if (!hasPending && pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, [repos, fetchData]);
+
   const toggleRepo = async (fullName) => {
     const next = localPrefs.includes(fullName) ? localPrefs.filter(r => r !== fullName) : [...localPrefs, fullName];
     setLocalPrefs(next);
@@ -95,18 +118,41 @@ export default function GitHubRAG() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: userMsg.text, githubReposMode: true, githubRepos: localPrefs, enableWebSearch: false, conversationId: activeConv?.id, tag: "github" })
+        body: JSON.stringify({ message: userMsg.text, githubReposMode: true, githubRepos: localPrefs, enableWebSearch: false, conversationId: activeConv?.id, tag: "github", model: selectedModel, provider: selectedProvider })
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "ai", text: data.answer || data.text || "", ts: new Date().getTime() }]);
-      if (!activeConv) fetchConversations();
+      if (!activeConv && data.conversationId) {
+        isCreatingConvRef.current = true;
+        setActiveConv({ id: data.conversationId, title: userMsg.text.substring(0, 30) || "محادثة جديدة" });
+        fetchConversations();
+      } else if (!activeConv) {
+        fetchConversations();
+      }
     } catch { setMessages(prev => [...prev, { role: "error", text: "فشل البحث في الأكواد" }]); }
     finally { setLoading(false); setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
   };
 
   const addRepo = async () => {
     if (!repoUrl.trim()) return;
-    try { await fetch("/api/github-repos/add", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ url: repoUrl.trim() }) }); setRepoUrl(""); fetchData(); } catch (err) { console.error(err); }
+    try {
+      const res = await fetch("/api/github-repos/add", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: repoUrl.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "حدث خطأ عند إضافة المستودع");
+        return;
+      }
+      setRepoUrl("");
+      fetchData();
+      // Start polling after add
+      if (!pollingRef.current) {
+        pollingRef.current = setInterval(fetchData, 3000);
+      }
+    } catch (err) { console.error(err); }
   };
 
   const languages = ["all", ...new Set(repos.map((r) => (r.language || "unknown")).filter(Boolean))];
@@ -131,11 +177,11 @@ export default function GitHubRAG() {
       </div>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>المستودعات المتاحة ({filteredRepos.length})</h3>
-        <button onClick={fetchData} className="text-[10px]" style={{ color: "var(--accent-tertiary)" }}>تحديث</button>
+        <button onClick={fetchData} className="text-[10px]" style={{ color: "var(--accent-primary)" }}>تحديث</button>
       </div>
       {loadingRepos ? (
         <div className="py-10 flex justify-center">
-          <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "rgba(167,139,250,0.3)", borderTopColor: "var(--accent-tertiary)" }} />
+          <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "rgba(59,130,246,0.3)", borderTopColor: "var(--accent-primary)" }} />
         </div>
       ) : filteredRepos.length === 0 ? (
         <p className="text-[10px] text-center py-4" style={{ color: "var(--text-muted)" }}>لا توجد مستودعات مضافة.</p>
@@ -145,21 +191,25 @@ export default function GitHubRAG() {
           const isReady = repo.status === 'ready';
           return (
             <GlassCard key={repo.id} onClick={isReady ? () => toggleRepo(repo.fullName) : undefined}
-              className={`p-3! transition-all cursor-pointer mb-2 ${isEnabled ? 'ring-1' : 'opacity-80'}`}
-              style={{ ringColor: isEnabled ? "var(--accent-tertiary)" : undefined }}>
+              className={`p-3! transition-all cursor-pointer mb-2 ${isEnabled ? 'ring-2' : 'opacity-80 hover:opacity-100'}`}
+              style={{ ringColor: isEnabled ? "var(--accent-primary)" : undefined }}>
               <div className="flex items-center justify-between gap-2 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(167,139,250,0.06)" }}>
-                    <span className="text-sm" style={{ color: "var(--accent-tertiary)" }}>⬡</span>
+                  <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(59,130,246,0.1)" }}>
+                    <span className="text-sm" style={{ color: "var(--accent-primary)" }}>⬡</span>
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-bold truncate" style={{ color: "var(--text-primary)" }}>{repo.fullName.split('/')[1]}</p>
                     <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{repo.fullName.split('/')[0]} • {repo.language || "n/a"}</p>
                   </div>
                 </div>
-                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-200`}
-                  style={{ background: isEnabled ? "var(--accent-tertiary)" : "transparent", borderColor: isEnabled ? "var(--accent-tertiary)" : "var(--border-color)" }}>
-                  {isEnabled && <span className="text-[8px] text-white font-bold">✓</span>}
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm`}
+                  style={{ 
+                    background: isEnabled ? "var(--accent-primary)" : "rgba(255,255,255,0.05)", 
+                    borderColor: isEnabled ? "var(--accent-primary)" : "var(--border-subtle)",
+                    boxShadow: isEnabled ? "0 0 10px rgba(59,130,246,0.5)" : "none"
+                  }}>
+                  {isEnabled && <span className="text-xs text-white font-bold leading-none">✓</span>}
                 </div>
               </div>
             </GlassCard>
@@ -204,6 +254,7 @@ export default function GitHubRAG() {
         </button>
         <ChatPanel mode="github-rag" messages={messages} loading={loading} input={input} setInput={setInput}
           sendMessage={sendMessage} messagesRef={messagesRef} endRef={endRef} user={user}
+          models={models} selectedModel={selectedModel} setSelectedModel={setSelectedModel} setSelectedProvider={setSelectedProvider}
           welcomeTitle="اسأل في الكود" welcomeDesc="اختر المستودعات التي تريد البحث فيها من القائمة الجانبية."
           welcomeIcon={<span className="text-3xl">🧩🐙</span>} showWebSearchToggle={false}
           mediaSupported={false} placeholder="ابحث في الكود..." />

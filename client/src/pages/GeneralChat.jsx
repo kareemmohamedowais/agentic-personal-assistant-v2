@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePerformance } from "../contexts/PerformanceContext";
 import { useSidebar } from "../contexts/SidebarContext";
 import useConversations from "../hooks/useConversations";
+import useModels from "../hooks/useModels";
 
 function makeMessageId(prefix = "msg") {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -35,9 +36,7 @@ export default function GeneralChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mediaFile, setMediaFile] = useState(null);
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash-lite");
-  const [selectedProvider, setSelectedProvider] = useState("gemini");
+  const { models, selectedModel, setSelectedModel, selectedProvider, setSelectedProvider } = useModels();
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
@@ -49,6 +48,7 @@ export default function GeneralChat() {
   const mediaInputRef = useRef(null);
   const scrollRafRef = useRef(null);
   const showScrollRef = useRef(false);
+  const isCreatingConvRef = useRef(false);
 
   const fetchMessages = useCallback(async (convId) => {
     setLoading(true);
@@ -72,11 +72,8 @@ export default function GeneralChat() {
     finally { setLoading(false); }
   }, [token]);
 
-  // Load models & prompts
+  // Load prompts
   useEffect(() => {
-    fetch("/api/models", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => setModels(Array.isArray(data) ? data : []));
     fetch("/api/prompts", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => setPrompts(Array.isArray(data) ? data : []));
@@ -84,6 +81,10 @@ export default function GeneralChat() {
 
   useEffect(() => {
     if (activeConv) {
+      if (isCreatingConvRef.current) {
+        isCreatingConvRef.current = false;
+        return;
+      }
       fetchMessages(activeConv.id);
     } else {
       setMessages([]);
@@ -220,6 +221,7 @@ export default function GeneralChat() {
           }
 
           if (event.type === "meta" && !activeConv && event.conversationId) {
+            isCreatingConvRef.current = true;
             setActiveConv({ id: event.conversationId, title: userMsg.text.substring(0, 30) || "محادثة جديدة" });
             fetchConversations();
           }

@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePerformance } from "../contexts/PerformanceContext";
 import { useSidebar } from "../contexts/SidebarContext";
 import useConversations from "../hooks/useConversations";
+import useModels from "../hooks/useModels";
 
 export default function DocumentRAG() {
   const { user, token } = useAuth();
@@ -26,6 +27,8 @@ export default function DocumentRAG() {
     fetchConversations,
   } = useConversations("document");
 
+  const { models, selectedModel, setSelectedModel, selectedProvider, setSelectedProvider } = useModels();
+
   const [documents, setDocuments] = useState([]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -35,6 +38,7 @@ export default function DocumentRAG() {
   const [loadingDocs, setLoadingDocs] = useState(true);
   const messagesRef = useRef(null);
   const endRef = useRef(null);
+  const isCreatingConvRef = useRef(false);
 
   const fetchMessages = useCallback(async (convId) => {
     setLoading(true);
@@ -59,6 +63,10 @@ export default function DocumentRAG() {
 
   useEffect(() => {
     if (activeConv) {
+      if (isCreatingConvRef.current) {
+        isCreatingConvRef.current = false;
+        return;
+      }
       fetchMessages(activeConv.id);
     } else {
       setMessages([]);
@@ -84,11 +92,17 @@ export default function DocumentRAG() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: userMsg.text, enableWebSearch: false, conversationId: activeConv?.id, tag: "document" })
+        body: JSON.stringify({ message: userMsg.text, enableWebSearch: false, conversationId: activeConv?.id, tag: "document", model: selectedModel, provider: selectedProvider })
       });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "ai", text: data.answer || data.text || "", ts: new Date().getTime() }]);
-      if (!activeConv) fetchConversations();
+      if (!activeConv && data.conversationId) {
+        isCreatingConvRef.current = true;
+        setActiveConv({ id: data.conversationId, title: userMsg.text.substring(0, 30) || "محادثة جديدة" });
+        fetchConversations();
+      } else if (!activeConv) {
+        fetchConversations();
+      }
     } catch { setMessages(prev => [...prev, { role: "error", text: "فشل البحث في المستندات" }]); }
     finally { setLoading(false); setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
   };
@@ -183,6 +197,7 @@ export default function DocumentRAG() {
         </button>
         <ChatPanel mode="document-rag" messages={messages} loading={loading} input={input} setInput={setInput}
           sendMessage={sendMessage} messagesRef={messagesRef} endRef={endRef} user={user}
+          models={models} selectedModel={selectedModel} setSelectedModel={setSelectedModel} setSelectedProvider={setSelectedProvider}
           welcomeTitle="اسأل مستنداتك" welcomeDesc="يمكنك طرح أسئلة حول محتوى الملفات المرفوعة."
             welcomeIcon={<span className="text-3xl">🔍📄</span>} showWebSearchToggle={false}
           mediaSupported={false} placeholder="ابحث في المستندات..." />

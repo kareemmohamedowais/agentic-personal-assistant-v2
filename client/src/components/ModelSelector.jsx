@@ -1,5 +1,6 @@
 // DESIGN DECISION: Warm glass dropdown, gold active/favorite states, refined provider badges
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 const BADGE_COLORS = {
   Google: "text-blue-400 bg-blue-500/10",
@@ -76,13 +77,14 @@ export default function ModelSelector({ models, selectedModel, onChange, compact
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        {open && (
+        {open && createPortal(
           <div ref={dropdownRef}
             style={{ position: "fixed", bottom: dropdownPos.bottom, left: dropdownPos.left, zIndex: 9999, width: 300 }}
             className="glass-luxury rounded-2xl shadow-2xl overflow-hidden animate-scale-in"
           >
             <ModelList models={models} selectedModel={selectedModel} favorites={favorites} onSelect={handleSelect} onToggleFav={toggleFavorite} />
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
@@ -108,13 +110,14 @@ export default function ModelSelector({ models, selectedModel, onChange, compact
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {open && (
+      {open && createPortal(
         <div ref={dropdownRef}
           style={{ position: "fixed", bottom: dropdownPos.bottom, left: dropdownPos.left, zIndex: 9999, width: 320 }}
           className="glass-luxury rounded-2xl shadow-2xl overflow-hidden animate-scale-in"
         >
           <ModelList models={models} selectedModel={selectedModel} favorites={favorites} onSelect={handleSelect} onToggleFav={toggleFavorite} />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

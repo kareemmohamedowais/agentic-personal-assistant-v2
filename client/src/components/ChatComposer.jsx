@@ -92,16 +92,16 @@ export default function ChatComposer({
         </div>
       )}
 
-      <div className="rounded-xl overflow-hidden shadow-lg transition-all duration-500 glow-focus group"
+      <div className="rounded-3xl overflow-hidden backdrop-blur-2xl transition-all duration-500 hover:shadow-indigo-500/10 focus-within:shadow-indigo-500/20 focus-within:ring-1 focus-within:ring-indigo-500/50 group"
         style={{
-          background: "var(--bg-surface-solid)",
+          background: "var(--bg-elevated)",
           border: "1px solid var(--border-color)",
-          boxShadow: "var(--glass-shadow)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.05)",
         }}
       >
 
         {/* Controls toolbar */}
-        <div className="flex flex-wrap items-center justify-between px-1.5 pt-1">
+        <div className="flex flex-wrap items-center justify-between px-3 pt-2 pb-1">
           <div className="flex items-center gap-1">
             {models?.length > 0 && (
               <ModelSelector
@@ -121,14 +121,14 @@ export default function ChatComposer({
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => setWebSearchEnabled?.((v) => !v)}
-                  className="flex items-center gap-1 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border transition-all duration-300 font-semibold"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all duration-300 font-semibold"
                   style={{
                     background: webSearchEnabled ? "rgba(45,212,191,0.15)" : "transparent",
-                    borderColor: webSearchEnabled ? "rgba(45,212,191,0.3)" : "var(--border-subtle)",
+                    borderColor: webSearchEnabled ? "rgba(45,212,191,0.3)" : "transparent",
                     color: webSearchEnabled ? "var(--teal)" : "var(--text-muted)",
                   }}
                 >
-                  <Globe className={`w-3 h-3 ${webSearchEnabled ? "animate-pulse" : ""}`} />
+                  <Globe className={`w-3.5 h-3.5 ${webSearchEnabled ? "animate-pulse" : ""}`} />
                   <span>بحث</span>
                 </motion.button>
               )}
@@ -139,15 +139,18 @@ export default function ChatComposer({
                 type="button"
                 onClick={handleOptimize}
                 disabled={!input?.trim() || isOptimizing}
-                className="flex items-center gap-1 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md border transition-all duration-300 font-semibold disabled:opacity-30"
+                className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all duration-300 font-semibold disabled:opacity-30 relative overflow-hidden group/opt"
                 style={{
                   background: isOptimizing ? "rgba(167,139,250,0.15)" : input?.trim() ? "rgba(167,139,250,0.08)" : "transparent",
-                  borderColor: isOptimizing ? "rgba(167,139,250,0.3)" : input?.trim() ? "rgba(167,139,250,0.2)" : "var(--border-subtle)",
+                  borderColor: isOptimizing ? "rgba(167,139,250,0.3)" : input?.trim() ? "rgba(167,139,250,0.2)" : "transparent",
                   color: "var(--accent-tertiary)",
                 }}
               >
-                {isOptimizing ? <Clock className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                <span>{isOptimizing ? "جاري..." : "تحسين"}</span>
+                {input?.trim() && !isOptimizing && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/opt:animate-shimmer" />
+                )}
+                {isOptimizing ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>{isOptimizing ? "جاري التحسين..." : "تحسين"}</span>
               </motion.button>
             </AnimatePresence>
           </div>
@@ -160,18 +163,18 @@ export default function ChatComposer({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={composerDisabled}
-          className="w-full bg-transparent px-1.5 py-0.5 text-[10px] sm:text-[11px] placeholder:text-[10px] placeholder:opacity-60 resize-none focus:outline-none overflow-y-auto leading-tight custom-scroll"
+          className="w-full bg-transparent px-4 py-2 text-sm placeholder:opacity-50 resize-none focus:outline-none overflow-y-auto leading-relaxed custom-scroll"
           style={{
             direction: "rtl",
-            minHeight: "28px",
-            maxHeight: "88px",
+            minHeight: "44px",
+            maxHeight: "160px",
             color: "var(--text-primary)",
             fontFamily: "var(--font-body)",
             transition: "height 0.2s ease-out"
           }}
         />
 
-        <div className="flex items-center justify-between px-1.5 pb-1 pt-0.5 border-t border-slate-700/20 mt-0.5">
+        <div className="flex items-center justify-between px-3 pb-2 pt-1 border-t border-white/5 mt-1">
           <div className="flex items-center gap-1">
 
             {mediaSupported && (
@@ -184,29 +187,29 @@ export default function ChatComposer({
                   onChange={onMediaSelect}
                 />
 
-                <motion.button
-                  whileHover={{ scale: 1.1, backgroundColor: "rgba(212,168,83,0.08)" }}
+                  <motion.button
+                  whileHover={{ scale: 1.1, backgroundColor: "rgba(212,168,83,0.12)" }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => mediaInputRef?.current?.click()}
                   disabled={loading || isRecording || composerDisabled}
-                  className="flex items-center justify-center w-8 h-8 rounded-full disabled:opacity-20 transition-all duration-200"
+                  className="flex items-center justify-center w-9 h-9 rounded-full disabled:opacity-20 transition-all duration-200 hover:text-amber-400"
                   style={{ color: "var(--text-secondary)" }}
                   title="إرفاق ملف"
                 >
-                  <Paperclip className="w-3.5 h-3.5" />
+                  <Paperclip className="w-4 h-4" />
                 </motion.button>
 
                 {!isRecording ? (
                   <motion.button
-                    whileHover={{ scale: 1.1, backgroundColor: "rgba(248,113,113,0.08)" }}
+                    whileHover={{ scale: 1.1, backgroundColor: "rgba(248,113,113,0.12)" }}
                     whileTap={{ scale: 0.9 }}
                     onClick={startRecording}
                     disabled={loading || !!mediaFile || composerDisabled}
-                    className="flex items-center justify-center w-8 h-8 rounded-full disabled:opacity-20 transition-all duration-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-full disabled:opacity-20 transition-all duration-200 hover:text-red-400"
                     style={{ color: "var(--text-secondary)" }}
                     title="تسجيل صوتي"
                   >
-                    <Mic className="w-3.5 h-3.5" />
+                    <Mic className="w-4 h-4" />
                   </motion.button>
                 ) : (
                   <button
@@ -222,7 +225,7 @@ export default function ChatComposer({
             )}
 
             {!isRecording && (
-              <span className="hidden sm:flex text-[9px] items-center gap-1 opacity-40 ml-1.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+              <span className="hidden sm:flex text-[10px] items-center gap-1 opacity-50 ml-2 font-medium" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                 Enter للإرسال · Shift+Enter لسطر جديد
               </span>
             )}
@@ -230,13 +233,13 @@ export default function ChatComposer({
 
           {/* Send button */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={sendMessage}
             disabled={loading || composerDisabled || (!input?.trim() && !mediaFile)}
-            className="btn-luxury flex items-center gap-1 text-[11px] font-semibold rounded-md px-2.5 py-1 disabled:opacity-20 disabled:grayscale transition-all shadow-md shadow-indigo-500/10"
+            className="flex items-center gap-2 text-sm font-bold rounded-2xl px-4 py-2 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-indigo-500/25 bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
           >
-            <SendHorizontal className="w-3.5 h-3.5 rotate-180" />
+            <SendHorizontal className="w-4 h-4 rotate-180" />
             <span>إرسال</span>
           </motion.button>
         </div>

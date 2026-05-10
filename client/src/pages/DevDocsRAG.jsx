@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePerformance } from "../contexts/PerformanceContext";
 import { useSidebar } from "../contexts/SidebarContext";
 import useConversations from "../hooks/useConversations";
+import useModels from "../hooks/useModels";
 
 export default function DevDocsRAG() {
   const { user, token } = useAuth();
@@ -26,6 +27,8 @@ export default function DevDocsRAG() {
     fetchConversations,
   } = useConversations("devdocs");
 
+  const { models, selectedModel, setSelectedModel, selectedProvider, setSelectedProvider } = useModels();
+
   const [frameworks, setFrameworks] = useState([]);
   const [localPrefs, setLocalPrefs] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -36,6 +39,7 @@ export default function DevDocsRAG() {
   const [loadingDocs, setLoadingDocs] = useState(true);
   const messagesRef = useRef(null);
   const endRef = useRef(null);
+  const isCreatingConvRef = useRef(false);
 
   const fetchMessages = useCallback(async (convId) => {
     setLoading(true);
@@ -60,6 +64,10 @@ export default function DevDocsRAG() {
 
   useEffect(() => {
     if (activeConv) {
+      if (isCreatingConvRef.current) {
+        isCreatingConvRef.current = false;
+        return;
+      }
       fetchMessages(activeConv.id);
     } else {
       setMessages([]);
@@ -93,10 +101,16 @@ export default function DevDocsRAG() {
     setMessages(prev => [...prev, userMsg]); setInput(""); setLoading(true);
     try {
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: userMsg.text, devDocsMode: true, devDocsFrameworks: localPrefs, enableWebSearch: false, conversationId: activeConv?.id, tag: "devdocs" }) });
+        body: JSON.stringify({ message: userMsg.text, devDocsMode: true, devDocsFrameworks: localPrefs, enableWebSearch: false, conversationId: activeConv?.id, tag: "devdocs", model: selectedModel, provider: selectedProvider }) });
       const data = await res.json();
       setMessages(prev => [...prev, { role: "ai", text: data.answer || data.text || "", ts: new Date().getTime() }]);
-      if (!activeConv) fetchConversations();
+      if (!activeConv && data.conversationId) {
+        isCreatingConvRef.current = true;
+        setActiveConv({ id: data.conversationId, title: userMsg.text.substring(0, 30) || "محادثة جديدة" });
+        fetchConversations();
+      } else if (!activeConv) {
+        fetchConversations();
+      }
     } catch { setMessages(prev => [...prev, { role: "error", text: "فشل البحث في التوثيق" }]); }
     finally { setLoading(false); setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
   };
@@ -125,7 +139,7 @@ export default function DevDocsRAG() {
           const isEnabled = localPrefs.includes(fw.framework);
           return (
             <GlassCard key={fw.framework} onClick={() => toggleFramework(fw.framework)}
-              className={`p-3! transition-all cursor-pointer mb-2 ${isEnabled ? 'ring-1' : 'opacity-80'}`}
+              className={`p-3! transition-all cursor-pointer mb-2 ${isEnabled ? 'ring-2' : 'opacity-80 hover:opacity-100'}`}
               style={{ ringColor: isEnabled ? "var(--accent-success)" : undefined }}>
               <div className="flex items-center justify-between gap-2 min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
@@ -135,9 +149,13 @@ export default function DevDocsRAG() {
                     <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>v{fw.version} • {fw.category}</p>
                   </div>
                 </div>
-                <div className="w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-200"
-                  style={{ background: isEnabled ? "var(--accent-success)" : "transparent", borderColor: isEnabled ? "var(--accent-success)" : "var(--border-color)" }}>
-                  {isEnabled && <span className="text-[8px] text-white font-bold">✓</span>}
+                <div className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm"
+                  style={{ 
+                    background: isEnabled ? "var(--accent-success)" : "rgba(255,255,255,0.05)", 
+                    borderColor: isEnabled ? "var(--accent-success)" : "var(--border-subtle)",
+                    boxShadow: isEnabled ? "0 0 10px rgba(16,185,129,0.5)" : "none"
+                  }}>
+                  {isEnabled && <span className="text-xs text-white font-bold leading-none">✓</span>}
                 </div>
               </div>
             </GlassCard>
@@ -182,6 +200,7 @@ export default function DevDocsRAG() {
         </button>
         <ChatPanel mode="dev-docs-rag" messages={messages} loading={loading} input={input} setInput={setInput}
           sendMessage={sendMessage} messagesRef={messagesRef} endRef={endRef} user={user}
+          models={models} selectedModel={selectedModel} setSelectedModel={setSelectedModel} setSelectedProvider={setSelectedProvider}
           welcomeTitle="خبير البرمجة" welcomeDesc="اختر لغات البرمجة والـ Frameworks التي تريد البحث في توثيقها."
           welcomeIcon={<span className="text-3xl">🧩📚</span>} showWebSearchToggle={false}
           mediaSupported={false} placeholder="ابحث في التوثيق..." />
